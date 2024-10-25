@@ -24,16 +24,15 @@ func signupHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err := json.NewDecoder(r.Body).Decode(&creds)
-	if err != nil {
-		log.Println(err)
-		return
-	}
-
 	if creds.Email == "" || creds.Password == "" {
 		http.Error(w, "Missing email or password", http.StatusBadRequest)
 		return
 	}
-	user.Signup(creds.Email, creds.Password)
+
+	err = user.Signup(creds.Email, creds.Password)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+	}
 }
 
 func RequestController(next http.HandlerFunc) http.HandlerFunc {

@@ -1,7 +1,6 @@
 package user
 
 import (
-	"database/sql"
 	"log"
 
 	"errors"
@@ -9,27 +8,42 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-func Signup(email string, password string) (sql.Result, error) {
+type User struct {
+	ID    int
+	Email string
+}
+
+func Signup(email string, password string) error {
+	var foundUser User
+
 	tx, err := config.Database.Begin()
 	if err != nil {
 		log.Println(err)
-		return nil, errors.New("Internal Server Error")
+		return errors.New("Internal Server Error")
+	}
+
+	findStmt, _ := tx.Prepare("SELECT * FROM users WHERE email = $1")
+	defer findStmt.Close()
+	err = findStmt.QueryRow(email).Scan(&foundUser)
+	if err != nil {
+		log.Println("A user with that email already exists")
+		return errors.New("A user with that email already exists")
 	}
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		log.Println(err)
-		return nil, errors.New("Internal Server Error")
+		return errors.New("Internal Server Error")
 	}
 
 	stmt, err := tx.Prepare("INSERT INTO users(email, password) VALUES($1, $2)")
 	if err != nil {
 		log.Println(err)
-		return nil, errors.New("Internal Server Error")
+		return errors.New("Internal Server Error")
 	}
 
 	defer stmt.Close()
-	result, err := stmt.Exec(email, hashedPassword)
+	_, err = stmt.Exec(email, hashedPassword)
 	err = tx.Commit()
-	return result, err
+	return err
 }
