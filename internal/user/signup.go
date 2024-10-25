@@ -1,9 +1,11 @@
 package user
 
 import (
+	"database/sql"
 	"log"
 
 	"errors"
+
 	"github.com/knoxmajor/go-auth/config"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -25,7 +27,7 @@ func Signup(email string, password string) error {
 	findStmt, _ := tx.Prepare("SELECT * FROM users WHERE email = $1")
 	defer findStmt.Close()
 	err = findStmt.QueryRow(email).Scan(&foundUser)
-	if err != nil {
+	if err != nil && err != sql.ErrNoRows {
 		log.Println("A user with that email already exists")
 		return errors.New("A user with that email already exists")
 	}
